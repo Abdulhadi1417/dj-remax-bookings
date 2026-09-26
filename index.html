@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DJ Remax حجوزات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css?v=1" />
+</head>
+<body>
+<div class="shell">
+  <!-- المحتوى (يمين) -->
+  <main class="main">
+    <header class="page-head">
+      <h1 id="pageTitle">الحجوزات</h1>
+      <div class="month-nav" id="monthNav">
+        <button type="button" id="prevMonth" class="icon-btn" title="الشهر السابق">›</button>
+        <button type="button" id="monthLabel" class="month-label" title="الرجوع للشهر الحالي"></button>
+        <button type="button" id="nextMonth" class="icon-btn" title="الشهر التالي">‹</button>
+      </div>
+    </header>
+
+    <!-- صفحة الحجوزات -->
+    <section id="page-bookings" class="page">
+      <div class="legend">
+        <span><i class="dot confirmed"></i> مؤكد</span>
+        <span><i class="dot pending"></i> غير مؤكد</span>
+        <span class="hint">اضغط على أي يوم لإضافة حجز، واضغط على الحجز لعرض الخيارات</span>
+      </div>
+      <div class="calendar">
+        <div class="cal-head" id="calHead"></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </section>
+
+    <!-- صفحة المصاريف -->
+    <section id="page-expenses" class="page hidden">
+      <form id="expenseForm" class="card form-grid">
+        <input type="hidden" id="expId" />
+        <div class="field">
+          <label for="expDate">التاريخ</label>
+          <input id="expDate" type="date" required />
+        </div>
+        <div class="field">
+          <label for="expTitle">البيان</label>
+          <input id="expTitle" type="text" placeholder="مثال: صيانة السماعات" required />
+        </div>
+        <div class="field">
+          <label for="expCategory">التصنيف</label>
+          <select id="expCategory"></select>
+        </div>
+        <div class="field">
+          <label for="expAmount">المبلغ (ر.س)</label>
+          <input id="expAmount" type="number" min="0" step="any" inputmode="decimal" required />
+        </div>
+        <div class="field span-2">
+          <label for="expBooking">مرتبط بحجز (اختياري)</label>
+          <select id="expBooking"></select>
+        </div>
+        <div class="form-actions span-2">
+          <button type="submit" class="btn primary" id="expSubmit">إضافة مصروف</button>
+          <button type="button" class="btn ghost hidden" id="expCancel">إلغاء التعديل</button>
+        </div>
+      </form>
+      <div class="card">
+        <div class="card-head">
+          <h2>مصاريف الشهر</h2>
+          <span class="total-pill" id="expTotal"></span>
+        </div>
+        <div id="expList"></div>
+      </div>
+    </section>
+
+    <!-- صفحة المالية -->
+    <section id="page-finance" class="page hidden">
+      <div class="kpis" id="finKpis"></div>
+      <div class="card">
+        <div class="card-head"><h2>صافي كل حجز</h2></div>
+        <div id="finBookings"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>ملخص السنة <span id="finYear"></span></h2></div>
+        <div id="finYearTable"></div>
+      </div>
+    </section>
+
+    <!-- صفحة الإعدادات -->
+    <section id="page-settings" class="page hidden">
+      <form id="settingsForm" class="card form-grid">
+        <div class="field">
+          <label for="setName">اسم الخدمة</label>
+          <input id="setName" type="text" />
+        </div>
+        <div class="field">
+          <label for="setPhone">رقم التواصل</label>
+          <input id="setPhone" type="tel" dir="ltr" />
+        </div>
+        <div class="field span-2">
+          <label for="setLocation">الموقع</label>
+          <input id="setLocation" type="text" placeholder="مثال: الشرقية - الأحساء" />
+        </div>
+        <div class="field span-2">
+          <label for="setEventTypes">أنواع المناسبات (افصل بينها بفاصلة)</label>
+          <input id="setEventTypes" type="text" />
+        </div>
+        <div class="field span-2">
+          <label for="setPolicy">الشروط وسياسة الإلغاء (تُضاف لرسالة الحجز)</label>
+          <textarea id="setPolicy" rows="9"></textarea>
+        </div>
+        <div class="form-actions span-2">
+          <button type="submit" class="btn primary">حفظ الإعدادات</button>
+          <span class="saved-msg hidden" id="savedMsg">تم الحفظ ✓</span>
+        </div>
+      </form>
+      <div class="card">
+        <div class="card-head"><h2>النسخ الاحتياطي</h2></div>
+        <p class="muted">البيانات محفوظة في هذا المتصفح. صدّر نسخة احتياطية بين فترة وأخرى.</p>
+        <div class="form-actions">
+          <button type="button" class="btn" id="exportBtn">تنزيل نسخة احتياطية</button>
+          <button type="button" class="btn" id="copyBackupBtn">نسخ البيانات</button>
+          <label class="btn">استيراد نسخة<input type="file" id="importFile" accept="application/json" hidden /></label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- القائمة الجانبية (يسار) -->
+  <nav class="sidebar">
+    <div class="brand"><span class="brand-en">DJ Remax</span><span class="brand-ar">دي جي ريمكس</span></div>
+    <button type="button" class="nav-item active" data-page="bookings"><span class="nav-ico">📅</span><span>الحجوزات</span></button>
+    <button type="button" class="nav-item" data-page="expenses"><span class="nav-ico">🧾</span><span>المصاريف</span></button>
+    <button type="button" class="nav-item" data-page="finance"><span class="nav-ico">💰</span><span>المالية</span></button>
+    <button type="button" class="nav-item" data-page="settings"><span class="nav-ico">⚙️</span><span>الإعدادات</span></button>
+  </nav>
+</div>
+
+<!-- نافذة إضافة / تعديل حجز -->
+<div class="overlay hidden" id="bookingModal">
+  <form class="modal" id="bookingForm">
+    <div class="modal-head">
+      <h3 id="bookingModalTitle">حجز جديد</h3>
+      <button type="button" class="icon-btn" data-close>×</button>
+    </div>
+    <div class="modal-body form-grid">
+      <input type="hidden" id="bId" />
+      <div class="field span-2">
+        <label for="bDate">تاريخ الحدث</label>
+        <input id="bDate" type="date" required />
+      </div>
+      <div class="field">
+        <label for="bName">اسم العميل</label>
+        <input id="bName" type="text" required />
+      </div>
+      <div class="field">
+        <label for="bPhone">رقم الجوال</label>
+        <input id="bPhone" type="tel" dir="ltr" inputmode="numeric" placeholder="05xxxxxxxx" />
+      </div>
+      <div class="field">
+        <label for="bTotal">السعر الإجمالي (ر.س)</label>
+        <input id="bTotal" type="number" min="0" step="any" inputmode="decimal" required />
+      </div>
+      <div class="field">
+        <label for="bDeposit">المبلغ المدفوع / العربون (ر.س)</label>
+        <input id="bDeposit" type="number" min="0" step="any" inputmode="decimal" value="0" />
+      </div>
+      <div class="field span-2">
+        <label>المتبقي للدفع</label>
+        <div class="readonly" id="bRemaining">0 ر.س</div>
+      </div>
+      <div class="field span-2">
+        <label>حالة الحجز</label>
+        <div class="seg">
+          <label><input type="radio" name="bStatus" value="confirmed" checked /><span class="confirmed">مؤكد</span></label>
+          <label><input type="radio" name="bStatus" value="pending" /><span class="pending">غير مؤكد</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="bEventType">نوع المناسبة</label>
+        <input id="bEventType" type="text" list="eventTypesList" />
+        <datalist id="eventTypesList"></datalist>
+      </div>
+      <div class="field">
+        <label for="bVenue">الموقع / القاعة</label>
+        <input id="bVenue" type="text" />
+      </div>
+      <div class="field span-2">
+        <label for="bPackage">وصف الباقة</label>
+        <textarea id="bPackage" rows="2" placeholder="مثال: دي جي + سماعات + إضاءة، 5 ساعات"></textarea>
+      </div>
+      <div class="field">
+        <label for="bFrom">وقت المناسبة — من</label>
+        <input id="bFrom" type="time" />
+      </div>
+      <div class="field">
+        <label for="bTo">إلى</label>
+        <input id="bTo" type="time" />
+      </div>
+      <div class="field span-2">
+        <label for="bNotes">ملاحظات</label>
+        <textarea id="bNotes" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="submit" class="btn primary">حفظ الحجز</button>
+      <button type="button" class="btn ghost" data-close>إلغاء</button>
+    </div>
+  </form>
+</div>
+
+<!-- خيارات الحجز -->
+<div class="overlay hidden" id="actionsModal">
+  <div class="modal small">
+    <div class="modal-head">
+      <h3 id="actionsTitle"></h3>
+      <button type="button" class="icon-btn" data-close>×</button>
+    </div>
+    <div class="modal-body actions-list">
+      <button type="button" class="action" id="actInfo"><span>1</span> معلومات الحجز</button>
+      <button type="button" class="action" id="actCopy"><span>2</span> نسخ رسالة الحجز مع الشروط وسياسة الإلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- معلومات الحجز -->
+<div class="overlay hidden" id="infoModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>معلومات الحجز</h3>
+      <button type="button" class="icon-btn" data-close>×</button>
+    </div>
+    <div class="modal-body" id="infoBody"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn primary" id="infoEdit">تعديل</button>
+      <button type="button" class="btn" id="infoCopy">نسخ الرسالة</button>
+      <button type="button" class="btn danger" id="infoDelete">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة التأكيد -->
+<div class="overlay hidden" id="confirmModal">
+  <div class="modal small">
+    <div class="modal-body"><p class="confirm-text" id="confirmText"></p></div>
+    <div class="modal-foot">
+      <button type="button" class="btn danger" id="confirmYes">تأكيد</button>
+      <button type="button" class="btn ghost" id="confirmNo">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="app.js?v=1"></script>
+</body>
+</html>
