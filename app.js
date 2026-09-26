@@ -23,9 +23,39 @@
     name: "DJ Remax - دي جي ريمكس",
     phone: "0566452281",
     location: "الشرقية - الأحساء",
-    eventTypes: "زواج, ملكة, حفل تخرج, عيد ميلاد, حفلة خاصة, فعالية شركة",
+    eventTypes: ["زواج", "سبحة", "شبكة", "اصباحية", "عيد ميلاد", "حفل تخرج"],
+    serviceTypes: ["تشغيل دي جي", "بدون مشغل", "إيجار مكسر", "إيجار سماعات"],
+    extras: ["بدون إضافات", "زيادة سماعة", "زيادة سماعتين"],
+    paymentMethods: ["تحويل بنكي", "كاش", "مدى", "STC Pay"],
     policy: DEFAULT_POLICY,
   };
+
+  // قوائم الاختيارات اللي تتعدل من الإعدادات
+  const OPTION_LISTS = [
+    { key: "eventTypes", label: "أنواع المناسبات" },
+    { key: "serviceTypes", label: "نوع الخدمة" },
+    { key: "extras", label: "الإضافات" },
+    { key: "paymentMethods", label: "طرق الدفع" },
+  ];
+  const OLD_EVENT_TYPES = "زواج, ملكة, حفل تخرج, عيد ميلاد, حفلة خاصة, فعالية شركة";
+
+  function normalizeSettings(raw) {
+    const s = { ...DEFAULT_SETTINGS, ...(raw || {}) };
+    OPTION_LISTS.forEach(({ key }) => {
+      let v = s[key];
+      if (typeof v === "string") v = v === OLD_EVENT_TYPES ? null : v.split(/[,،]/);
+      s[key] = Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [...DEFAULT_SETTINGS[key]];
+    });
+    return s;
+  }
+
+  // تحويل الأرقام العربية/الفارسية إلى إنجليزية
+  function toEnDigits(v) {
+    return String(v ?? "")
+      .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x0660)
+      .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x06f0)
+      .replace(/٫/g, ".");
+  }
 
   // ---------- التخزين ----------
   const KEYS = { bookings: "djremax_bookings", expenses: "djremax_expenses", settings: "djremax_settings" };
@@ -49,7 +79,7 @@
   const state = {
     bookings: load(KEYS.bookings, []),
     expenses: load(KEYS.expenses, []),
-    settings: { ...DEFAULT_SETTINGS, ...load(KEYS.settings, {}) },
+    settings: normalizeSettings(load(KEYS.settings, {})),
     page: "bookings",
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
@@ -73,7 +103,7 @@
     return ymd(t.getFullYear(), t.getMonth(), t.getDate());
   };
   const monthPrefix = (y, m) => `${y}-${pad(m + 1)}`;
-  const num = (v) => Number(v) || 0;
+  const num = (v) => Number(toEnDigits(v).replace(/[,٬\s]/g, "")) || 0;
   const money = (v) => `${num(v).toLocaleString("en-US", { maximumFractionDigits: 2 })} ر.س`;
   const remainingOf = (b) => num(b.total) - num(b.deposit);
 
@@ -234,14 +264,52 @@
   });
 
   // ---------- نموذج الحجز ----------
-  function fillEventTypes() {
-    $("eventTypesList").innerHTML = state.settings.eventTypes
-      .split(/[,،]/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((s) => `<option value="${esc(s)}"></option>`)
-      .join("");
+  // أي رقم عربي يُكتب في أي خانة يتحول مباشرة للإنجليزي
+  const HAS_AR_DIGIT = /[٠-٩۰-۹٫]/;
+  const isTextField = (el) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+
+  // الكتابة: نستبدل الحرف قبل إدخاله عشان يبقى المؤشر في مكانه
+  document.addEventListener(
+    "beforeinput",
+    (e) => {
+      const el = e.target;
+      if (!isTextField(el) || e.isComposing || !e.data || !HAS_AR_DIGIT.test(e.data)) return;
+      let start, end;
+      try {
+        start = el.selectionStart;
+        end = el.selectionEnd;
+      } catch {}
+      if (start == null) return;
+      e.preventDefault();
+      el.setRangeText(toEnDigits(e.data), start, end, "end");
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    true
+  );
+
+  // اللصق والتعبئة التلقائية: نحوّل القيمة كاملة
+  document.addEventListener(
+    "input",
+    (e) => {
+      const el = e.target;
+      if (!isTextField(el) || !HAS_AR_DIGIT.test(el.value)) return;
+      el.value = toEnDigits(el.value);
+    },
+    true
+  );
+
+  // يعبّي القائمة المنسدلة، ويحافظ على القيمة القديمة حتى لو انحذفت من الإعدادات
+  function fillSelect(id, items, value, placeholder = "— اختر —") {
+    const list = [...items];
+    if (value && !list.includes(value)) list.push(value);
+    $(id).innerHTML =
+      (placeholder ? `<option value="">${placeholder}</option>` : "") +
+      list.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    $(id).value = value || "";
   }
+
+  const isNoExtras = (x) => !x || x.startsWith("بدون");
+  const withMethod = (amount, method) => (method ? `${money(amount)} (${method})` : money(amount));
 
   function updateRemaining() {
     const rem = num($("bTotal").value) - num($("bDeposit").value);
@@ -252,15 +320,19 @@
 
   function openBookingForm(bookingId, date) {
     const b = bookingId ? state.bookings.find((x) => x.id === bookingId) : null;
-    fillEventTypes();
+    const s = state.settings;
+    fillSelect("bEventType", s.eventTypes, b ? b.eventType : "");
+    fillSelect("bService", s.serviceTypes, b ? b.service || "" : s.serviceTypes[0] || "");
+    fillSelect("bExtras", s.extras, b ? b.extras || "" : s.extras[0] || "");
+    fillSelect("bDepositMethod", s.paymentMethods, b ? b.depositMethod || "" : "");
+    fillSelect("bRemainingMethod", s.paymentMethods, b ? b.remainingMethod || "" : "");
     $("bookingModalTitle").textContent = b ? "تعديل الحجز" : `حجز جديد — ${formatDateLong(date)}`;
     $("bId").value = b ? b.id : "";
     $("bDate").value = b ? b.date : date;
     $("bName").value = b ? b.name : "";
     $("bPhone").value = b ? b.phone : "";
     $("bTotal").value = b ? b.total : "";
-    $("bDeposit").value = b ? b.deposit : 0;
-    $("bEventType").value = b ? b.eventType : "";
+    $("bDeposit").value = b ? b.deposit : "";
     $("bVenue").value = b ? b.venue || "" : "";
     $("bPackage").value = b ? b.package || "" : "";
     $("bFrom").value = b ? b.timeFrom : "";
@@ -286,11 +358,15 @@
       id: id || uid(),
       date: $("bDate").value,
       name: $("bName").value.trim(),
-      phone: $("bPhone").value.trim(),
+      phone: toEnDigits($("bPhone").value.trim()),
       total,
       deposit,
       status: document.querySelector('input[name="bStatus"]:checked').value,
-      eventType: $("bEventType").value.trim(),
+      eventType: $("bEventType").value,
+      service: $("bService").value,
+      extras: $("bExtras").value,
+      depositMethod: $("bDepositMethod").value,
+      remainingMethod: $("bRemainingMethod").value,
       venue: $("bVenue").value.trim(),
       package: $("bPackage").value.trim(),
       timeFrom: $("bFrom").value,
@@ -342,11 +418,13 @@
       ["وقت المناسبة", timeRange(b) || "—"],
       ["نوع المناسبة", esc(b.eventType) || "—"],
       ["الموقع / القاعة", esc(b.venue) || "—"],
+      ["نوع الخدمة", esc(b.service) || "—"],
+      ["الإضافات", esc(b.extras) || "—"],
       ["وصف الباقة", b.package ? esc(b.package).replace(/\n/g, "<br>") : "—"],
       ["الحالة", `<span class="tag ${b.status}">${STATUS_LABELS[b.status]}</span>`],
       ["السعر الإجمالي", money(b.total)],
-      ["المبلغ المدفوع", money(b.deposit)],
-      ["المتبقي للدفع", `<span class="${remainingOf(b) > 0 ? "neg" : "pos"}">${money(remainingOf(b))}</span>`],
+      ["العربون المدفوع", esc(withMethod(b.deposit, b.depositMethod))],
+      ["المتبقي للدفع", `<span class="${remainingOf(b) > 0 ? "neg" : "pos"}">${esc(withMethod(remainingOf(b), b.remainingMethod))}</span>`],
     ];
     if (exps.length) {
       rows.push(["مصاريف الحجز", money(expTotal)]);
@@ -393,12 +471,14 @@
       timeRange(b) ? `⏰ الوقت: ${timeRange(b)}` : "",
       b.eventType ? `🎉 نوع المناسبة: ${b.eventType}` : "",
       b.venue ? `📍 الموقع / القاعة: ${b.venue}` : "",
+      b.service ? `🎛️ نوع الخدمة: ${b.service}` : "",
+      !isNoExtras(b.extras) ? `🔊 الإضافات: ${b.extras}` : "",
       b.package ? `🎶 الباقة: ${b.package}` : "",
       `📌 حالة الحجز: ${STATUS_LABELS[b.status]}`,
       line,
       `💰 السعر الإجمالي: ${money(b.total)}`,
-      `💵 العربون المدفوع: ${money(b.deposit)}`,
-      `🧾 المتبقي: ${money(remainingOf(b))}`,
+      `💵 العربون المدفوع: ${withMethod(b.deposit, b.depositMethod)}`,
+      `🧾 المتبقي: ${withMethod(remainingOf(b), b.remainingMethod)}`,
       line,
       s.policy ? `📋 ${s.policy.trim()}` : "",
       s.policy ? line : "",
@@ -643,8 +723,42 @@
     $("setName").value = s.name;
     $("setPhone").value = s.phone;
     $("setLocation").value = s.location;
-    $("setEventTypes").value = s.eventTypes;
     $("setPolicy").value = s.policy;
+    renderListEditors();
+  }
+
+  function listRow(value = "") {
+    return `<div class="list-row"><input type="text" value="${esc(value)}" /><button type="button" class="icon-btn" data-remove-item title="حذف">×</button></div>`;
+  }
+
+  function renderListEditors() {
+    $("listEditors").innerHTML = OPTION_LISTS.map(
+      ({ key, label }) => `<div class="list-editor" data-list="${key}">
+        <h4>${label}</h4>
+        <div class="list-rows">${state.settings[key].map((v) => listRow(v)).join("")}</div>
+        <button type="button" class="add-item" data-add-item>+ إضافة خيار</button>
+      </div>`
+    ).join("");
+  }
+
+  $("listEditors").addEventListener("click", (e) => {
+    if (e.target.closest("[data-remove-item]")) e.target.closest(".list-row").remove();
+    const add = e.target.closest("[data-add-item]");
+    if (add) {
+      const rows = add.parentElement.querySelector(".list-rows");
+      rows.insertAdjacentHTML("beforeend", listRow());
+      rows.lastElementChild.querySelector("input").focus();
+    }
+  });
+
+  function readListEditors() {
+    const out = {};
+    OPTION_LISTS.forEach(({ key }) => {
+      out[key] = [...document.querySelectorAll(`[data-list="${key}"] .list-row input`)]
+        .map((i) => i.value.trim())
+        .filter(Boolean);
+    });
+    return out;
   }
 
   $("settingsForm").addEventListener("submit", (e) => {
@@ -653,8 +767,8 @@
       name: $("setName").value.trim(),
       phone: $("setPhone").value.trim(),
       location: $("setLocation").value.trim(),
-      eventTypes: $("setEventTypes").value,
       policy: $("setPolicy").value,
+      ...readListEditors(),
     };
     persistSettings();
     sync(() => cloud.saveSettings(state.settings));
@@ -689,7 +803,7 @@
       if (!(await askConfirm("سيتم استبدال البيانات الحالية بالنسخة المستوردة. متابعة؟", "استيراد"))) return;
       state.bookings = data.bookings;
       state.expenses = data.expenses;
-      state.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+      state.settings = normalizeSettings(data.settings);
       persistBookings();
       persistExpenses();
       persistSettings();
@@ -747,7 +861,7 @@
   function applyData(data) {
     state.bookings = data.bookings;
     state.expenses = data.expenses;
-    state.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+    state.settings = normalizeSettings(data.settings);
     persistBookings();
     persistExpenses();
     persistSettings();

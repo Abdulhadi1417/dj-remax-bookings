@@ -260,6 +260,16 @@ tr.total-row td { font-weight: 800; background: var(--surface-2); }
   font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
 }
 
+/* ---------- محرر القوائم ---------- */
+.list-editors { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.list-editor { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.list-editor h4 { margin: 0; font-size: 15px; }
+.list-row { display: flex; gap: 6px; }
+.list-row input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+.list-row input:focus { outline: none; border-color: var(--primary); }
+.list-row .icon-btn { width: 36px; height: 36px; font-size: 18px; color: var(--danger); flex-shrink: 0; }
+.add-item { align-self: flex-start; border: 1px dashed var(--primary); color: var(--primary); background: transparent; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
+
 /* ---------- المزامنة وتسجيل الدخول ---------- */
 .title-row { display: flex; align-items: center; gap: 10px; }
 .sync-pill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }

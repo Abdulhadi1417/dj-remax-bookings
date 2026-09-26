@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=1" />
+<link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
 <div class="shell">
@@ -62,7 +62,7 @@
         </div>
         <div class="field">
           <label for="expAmount">المبلغ (ر.س)</label>
-          <input id="expAmount" type="number" min="0" step="any" inputmode="decimal" required />
+          <input id="expAmount" type="text" inputmode="decimal" dir="ltr" required />
         </div>
         <div class="field span-2">
           <label for="expBooking">مرتبط بحجز (اختياري)</label>
@@ -111,8 +111,8 @@
           <input id="setLocation" type="text" placeholder="مثال: الشرقية - الأحساء" />
         </div>
         <div class="field span-2">
-          <label for="setEventTypes">أنواع المناسبات (افصل بينها بفاصلة)</label>
-          <input id="setEventTypes" type="text" />
+          <label>قوائم الاختيارات في نموذج الحجز</label>
+          <div class="list-editors" id="listEditors"></div>
         </div>
         <div class="field span-2">
           <label for="setPolicy">الشروط وسياسة الإلغاء (تُضاف لرسالة الحجز)</label>
@@ -176,11 +176,19 @@
       </div>
       <div class="field">
         <label for="bTotal">السعر الإجمالي (ر.س)</label>
-        <input id="bTotal" type="number" min="0" step="any" inputmode="decimal" required />
+        <input id="bTotal" type="text" inputmode="decimal" dir="ltr" required />
       </div>
       <div class="field">
-        <label for="bDeposit">المبلغ المدفوع / العربون (ر.س)</label>
-        <input id="bDeposit" type="number" min="0" step="any" inputmode="decimal" value="0" />
+        <label for="bDeposit">العربون المدفوع (ر.س)</label>
+        <input id="bDeposit" type="text" inputmode="decimal" dir="ltr" placeholder="0" />
+      </div>
+      <div class="field">
+        <label for="bDepositMethod">طريقة دفع العربون</label>
+        <select id="bDepositMethod"></select>
+      </div>
+      <div class="field">
+        <label for="bRemainingMethod">طريقة دفع المتبقي</label>
+        <select id="bRemainingMethod"></select>
       </div>
       <div class="field span-2">
         <label>المتبقي للدفع</label>
@@ -195,8 +203,7 @@
       </div>
       <div class="field">
         <label for="bEventType">نوع المناسبة</label>
-        <input id="bEventType" type="text" list="eventTypesList" />
-        <datalist id="eventTypesList"></datalist>
+        <select id="bEventType"></select>
       </div>
       <div class="field">
         <label for="bVenue">الموقع / القاعة</label>
@@ -213,6 +220,14 @@
       <div class="field">
         <label for="bTo">إلى</label>
         <input id="bTo" type="time" />
+      </div>
+      <div class="field">
+        <label for="bService">نوع الخدمة</label>
+        <select id="bService"></select>
+      </div>
+      <div class="field">
+        <label for="bExtras">الإضافات</label>
+        <select id="bExtras"></select>
       </div>
       <div class="field span-2">
         <label for="bNotes">ملاحظات</label>
@@ -290,6 +305,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js?v=1"></script>
 <script src="cloud.js?v=1"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
