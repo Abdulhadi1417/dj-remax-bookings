@@ -56,6 +56,9 @@
     activeBookingId: null,
   };
 
+  const cloud = window.Cloud && window.Cloud.enabled ? window.Cloud : null;
+  const DIRTY_KEY = "djremax_dirty";
+
   const persistBookings = () => save(KEYS.bookings, state.bookings);
   const persistExpenses = () => save(KEYS.expenses, state.expenses);
   const persistSettings = () => save(KEYS.settings, state.settings);
@@ -298,6 +301,7 @@
     if (existing) Object.assign(existing, booking);
     else state.bookings.push(booking);
     persistBookings();
+    sync(() => cloud.upsert("bookings", booking));
     closeModal("bookingModal");
     toast(existing ? "تم تعديل الحجز" : "تم إضافة الحجز");
     render();
@@ -363,11 +367,14 @@
     if (!b || !(await askConfirm(`حذف حجز ${b.name}؟`, "حذف"))) return;
     state.bookings = state.bookings.filter((x) => x.id !== b.id);
     // المصاريف المرتبطة تبقى لكن تصير مصاريف عامة
-    state.expenses.forEach((x) => {
-      if (x.bookingId === b.id) x.bookingId = "";
-    });
+    const unlinked = state.expenses.filter((x) => x.bookingId === b.id);
+    unlinked.forEach((x) => (x.bookingId = ""));
     persistBookings();
     persistExpenses();
+    sync(async () => {
+      await cloud.remove("bookings", b.id);
+      await cloud.upsert("expenses", unlinked);
+    });
     closeModal("infoModal");
     toast("تم حذف الحجز");
     render();
@@ -472,6 +479,7 @@
     if (existing) Object.assign(existing, exp);
     else state.expenses.push(exp);
     persistExpenses();
+    sync(() => cloud.upsert("expenses", exp));
     toast(existing ? "تم تعديل المصروف" : "تم إضافة المصروف");
     const [y, m] = exp.date.split("-").map(Number);
     state.year = y;
@@ -531,6 +539,7 @@
     if (delId && (await askConfirm("حذف هذا المصروف؟", "حذف"))) {
       state.expenses = state.expenses.filter((ex) => ex.id !== delId);
       persistExpenses();
+      sync(() => cloud.remove("expenses", delId));
       if ($("expId").value === delId) resetExpenseForm();
       renderExpenses();
     }
@@ -648,6 +657,7 @@
       policy: $("setPolicy").value,
     };
     persistSettings();
+    sync(() => cloud.saveSettings(state.settings));
     $("savedMsg").classList.remove("hidden");
     setTimeout(() => $("savedMsg").classList.add("hidden"), 2000);
   });
@@ -683,11 +693,146 @@
       persistBookings();
       persistExpenses();
       persistSettings();
+      sync(() => cloud.replaceAll(state));
       toast("تم استيراد النسخة ✓");
       render();
     } catch {
       toast("الملف غير صالح");
     }
+  });
+
+  // ---------- المزامنة أونلاين ----------
+  let syncing = 0;
+
+  function setSyncStatus(kind) {
+    const el = $("syncStatus");
+    if (!cloud) return;
+    const labels = { saving: "جاري الحفظ…", ok: "محفوظ أونلاين ✓", error: "غير محفوظ أونلاين", loading: "جاري التحميل…" };
+    el.textContent = labels[kind];
+    el.className = `sync-pill ${kind}`;
+  }
+
+  function isDirty() {
+    try {
+      return localStorage.getItem(DIRTY_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function setDirty(v) {
+    try {
+      if (v) localStorage.setItem(DIRTY_KEY, "1");
+      else localStorage.removeItem(DIRTY_KEY);
+    } catch {}
+  }
+
+  // كل تعديل يُحفظ على الجهاز أولًا ثم يُرسل أونلاين. لو فشل الإرسال، نرفع النسخة الكاملة في المزامنة القادمة.
+  function sync(fn) {
+    if (!cloud) return;
+    syncing++;
+    setSyncStatus("saving");
+    fn()
+      .then(() => {
+        if (!isDirty()) setSyncStatus("ok");
+      })
+      .catch((err) => {
+        console.error(err);
+        setDirty(true);
+        setSyncStatus("error");
+        toast("تعذّر الحفظ أونلاين، بيتم الرفع تلقائيًا لما يرجع الاتصال");
+      })
+      .finally(() => syncing--);
+  }
+
+  function applyData(data) {
+    state.bookings = data.bookings;
+    state.expenses = data.expenses;
+    state.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+    persistBookings();
+    persistExpenses();
+    persistSettings();
+  }
+
+  async function loadFromCloud() {
+    if (syncing) return;
+    setSyncStatus("loading");
+    try {
+      if (isDirty()) {
+        await cloud.replaceAll(state);
+        setDirty(false);
+      }
+      const data = await cloud.fetchAll();
+      const cloudEmpty = !data.bookings.length && !data.expenses.length && !data.settings;
+      const localHasData = state.bookings.length || state.expenses.length;
+      if (cloudEmpty && localHasData) {
+        if (await askConfirm("عندك بيانات محفوظة على هذا الجهاز. تبي ترفعها لحسابك أونلاين؟", "رفع البيانات")) {
+          await cloud.replaceAll(state);
+          setSyncStatus("ok");
+          render();
+          return;
+        }
+      }
+      applyData(data);
+      setSyncStatus("ok");
+      render();
+    } catch (err) {
+      console.error(err);
+      setSyncStatus("error");
+      toast("تعذّر تحميل البيانات أونلاين، المعروض هو آخر نسخة على الجهاز");
+    }
+  }
+
+  function renderAccount(sess) {
+    if (!cloud) {
+      $("accountInfo").textContent = "البيانات محفوظة على هذا الجهاز فقط. للمزامنة بين الأجهزة، اربط قاعدة البيانات في ملف config.js.";
+      return;
+    }
+    $("accountInfo").textContent = sess ? `مسجّل دخول بـ ${sess.user.email}. بياناتك تتزامن بين كل أجهزتك.` : "";
+    $("signOutBtn").classList.toggle("hidden", !sess);
+    $("syncNowBtn").classList.toggle("hidden", !sess);
+  }
+
+  function showLogin(show) {
+    $("loginScreen").classList.toggle("hidden", !show);
+    if (show) setTimeout(() => $("loginEmail").focus(), 50);
+  }
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("loginError").classList.add("hidden");
+    $("loginBtn").disabled = true;
+    try {
+      await cloud.signIn($("loginEmail").value.trim(), $("loginPassword").value);
+      $("loginPassword").value = "";
+      showLogin(false);
+      renderAccount(await cloud.session());
+      await loadFromCloud();
+    } catch (err) {
+      $("loginError").textContent = /invalid/i.test(err.message || "")
+        ? "البريد أو كلمة المرور غير صحيحة"
+        : "تعذّر تسجيل الدخول، تأكد من الاتصال بالإنترنت";
+      $("loginError").classList.remove("hidden");
+    } finally {
+      $("loginBtn").disabled = false;
+    }
+  });
+
+  $("signOutBtn").addEventListener("click", async () => {
+    if (!(await askConfirm("تسجيل الخروج من هذا الجهاز؟", "خروج"))) return;
+    await cloud.signOut();
+    // نمسح النسخة المحلية عشان ما تبقى بيانات العملاء على الجهاز
+    applyData({ bookings: [], expenses: [], settings: null });
+    setDirty(false);
+    render();
+    showLogin(true);
+  });
+
+  $("syncNowBtn").addEventListener("click", loadFromCloud);
+
+  document.addEventListener("visibilitychange", async () => {
+    if (!cloud || document.visibilityState !== "visible") return;
+    const anyOpen = [...document.querySelectorAll(".overlay")].some((o) => !o.classList.contains("hidden"));
+    if (!anyOpen && (await cloud.session())) loadFromCloud();
   });
 
   // ---------- البداية ----------
@@ -696,4 +841,16 @@
     startPage = localStorage.getItem("djremax_page") || "bookings";
   } catch {}
   setPage(PAGE_TITLES[startPage] ? startPage : "bookings");
+
+  (async () => {
+    if (!cloud) {
+      renderAccount(null);
+      return;
+    }
+    $("syncStatus").classList.remove("hidden");
+    const sess = await cloud.session().catch(() => null);
+    renderAccount(sess);
+    if (sess) loadFromCloud();
+    else showLogin(true);
+  })();
 })();

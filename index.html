@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>DJ Remax حجوزات</title>
+<meta name="theme-color" content="#14110c" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="DJ Remax" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css?v=1" />
@@ -13,7 +20,10 @@
   <!-- المحتوى (يمين) -->
   <main class="main">
     <header class="page-head">
-      <h1 id="pageTitle">الحجوزات</h1>
+      <div class="title-row">
+        <h1 id="pageTitle">الحجوزات</h1>
+        <span class="sync-pill hidden" id="syncStatus"></span>
+      </div>
       <div class="month-nav" id="monthNav">
         <button type="button" id="prevMonth" class="icon-btn" title="الشهر السابق">›</button>
         <button type="button" id="monthLabel" class="month-label" title="الرجوع للشهر الحالي"></button>
@@ -114,8 +124,16 @@
         </div>
       </form>
       <div class="card">
+        <div class="card-head"><h2>الحساب والمزامنة</h2></div>
+        <p class="muted" id="accountInfo"></p>
+        <div class="form-actions">
+          <button type="button" class="btn hidden" id="syncNowBtn">تحديث البيانات الآن</button>
+          <button type="button" class="btn danger hidden" id="signOutBtn">تسجيل الخروج</button>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-head"><h2>النسخ الاحتياطي</h2></div>
-        <p class="muted">البيانات محفوظة في هذا المتصفح. صدّر نسخة احتياطية بين فترة وأخرى.</p>
+        <p class="muted">خذ نسخة احتياطية من بياناتك بين فترة وأخرى.</p>
         <div class="form-actions">
           <button type="button" class="btn" id="exportBtn">تنزيل نسخة احتياطية</button>
           <button type="button" class="btn" id="copyBackupBtn">نسخ البيانات</button>
@@ -249,8 +267,29 @@
   </div>
 </div>
 
+<!-- تسجيل الدخول -->
+<div class="login-screen hidden" id="loginScreen">
+  <form class="login-card" id="loginForm">
+    <div class="brand login-brand"><span class="brand-en">DJ Remax</span><span class="brand-ar">دي جي ريمكس</span></div>
+    <p class="muted">سجّل دخولك عشان تشوف حجوزاتك من أي جهاز.</p>
+    <div class="field">
+      <label for="loginEmail">البريد الإلكتروني</label>
+      <input id="loginEmail" type="email" dir="ltr" autocomplete="username" required />
+    </div>
+    <div class="field">
+      <label for="loginPassword">كلمة المرور</label>
+      <input id="loginPassword" type="password" dir="ltr" autocomplete="current-password" required />
+    </div>
+    <p class="login-error hidden" id="loginError"></p>
+    <button type="submit" class="btn primary" id="loginBtn">دخول</button>
+  </form>
+</div>
+
 <div class="toast hidden" id="toast"></div>
 
-<script src="app.js?v=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js?v=1"></script>
+<script src="cloud.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
