@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>DJ Remax حجوزات</title>
 <meta name="theme-color" content="#14110c" />
+<meta name="app-version" content="__APP_VERSION__" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="DJ Remax" />
@@ -23,6 +24,7 @@
       <div class="title-row">
         <h1 id="pageTitle">الحجوزات</h1>
         <span class="sync-pill hidden" id="syncStatus"></span>
+        <button type="button" class="icon-btn refresh-btn" id="refreshBtn" title="تحديث الصفحة" aria-label="تحديث الصفحة">⟳</button>
       </div>
       <div class="month-nav" id="monthNav">
         <button type="button" id="prevMonth" class="icon-btn" title="الشهر السابق">›</button>
@@ -30,6 +32,11 @@
         <button type="button" id="nextMonth" class="icon-btn" title="الشهر التالي">‹</button>
       </div>
     </header>
+
+    <div class="update-banner hidden" id="updateBanner">
+      <span>🎉 في تحديث جديد للتطبيق</span>
+      <button type="button" class="btn primary" data-apply-update>حدّث الآن</button>
+    </div>
 
     <!-- صفحة الحجوزات -->
     <section id="page-bookings" class="page">
@@ -123,6 +130,52 @@
           <span class="saved-msg hidden" id="savedMsg">تم الحفظ ✓</span>
         </div>
       </form>
+      <div class="card" id="updatesCard">
+        <div class="card-head">
+          <h2>التحديثات</h2>
+          <span class="total-pill" id="versionPill"></span>
+        </div>
+        <p class="update-status" id="updateStatus"></p>
+        <div class="form-actions">
+          <button type="button" class="btn primary hidden" data-apply-update>تحديث التطبيق الآن</button>
+          <button type="button" class="btn" id="checkUpdateBtn">البحث عن تحديث</button>
+        </div>
+
+        <div class="app-link">
+          <label for="appLink">رابط التطبيق</label>
+          <div class="link-row">
+            <input id="appLink" type="text" dir="ltr" readonly />
+            <button type="button" class="btn" id="copyLinkBtn">نسخ</button>
+          </div>
+        </div>
+
+        <p class="installed-msg hidden" id="installedMsg">✓ التطبيق مثبّت على الشاشة الرئيسية</p>
+        <div class="install-guide">
+          <h3>طريقة تثبيته على الشاشة الرئيسية</h3>
+          <div class="install-cols">
+            <div>
+              <h4>آيفون (Safari)</h4>
+              <ol>
+                <li>افتح رابط التطبيق في <b>Safari</b>.</li>
+                <li>اضغط زر المشاركة <b>⬆︎</b> تحت الشاشة.</li>
+                <li>اختر <b>إضافة إلى الشاشة الرئيسية</b>.</li>
+                <li>اضغط <b>إضافة</b>، وبتطلع أيقونة DJ Remax.</li>
+              </ol>
+            </div>
+            <div>
+              <h4>أندرويد (Chrome)</h4>
+              <ol>
+                <li>افتح رابط التطبيق في <b>Chrome</b>.</li>
+                <li>اضغط <b>⋮</b> فوق يمين الشاشة.</li>
+                <li>اختر <b>تثبيت التطبيق</b> أو <b>إضافة إلى الشاشة الرئيسية</b>.</li>
+                <li>اضغط <b>تثبيت</b>.</li>
+              </ol>
+            </div>
+          </div>
+          <p class="muted">التحديثات توصل للتطبيق المثبّت تلقائيًا، ما تحتاج تثبته من جديد. إذا ما ظهر التحديث، اضغط ⟳ فوق.</p>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-head"><h2>الحساب والمزامنة</h2></div>
         <p class="muted" id="accountInfo"></p>
@@ -149,7 +202,7 @@
     <button type="button" class="nav-item active" data-page="bookings"><span class="nav-ico">📅</span><span>الحجوزات</span></button>
     <button type="button" class="nav-item" data-page="expenses"><span class="nav-ico">🧾</span><span>المصاريف</span></button>
     <button type="button" class="nav-item" data-page="finance"><span class="nav-ico">💰</span><span>المالية</span></button>
-    <button type="button" class="nav-item" data-page="settings"><span class="nav-ico">⚙️</span><span>الإعدادات</span></button>
+    <button type="button" class="nav-item" data-page="settings"><span class="nav-ico">⚙️<i class="nav-dot hidden" id="settingsDot"></i></span><span>الإعدادات</span></button>
   </nav>
 </div>
 

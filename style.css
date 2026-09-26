@@ -270,6 +270,32 @@ tr.total-row td { font-weight: 800; background: var(--surface-2); }
 .list-row .icon-btn { width: 36px; height: 36px; font-size: 18px; color: var(--danger); flex-shrink: 0; }
 .add-item { align-self: flex-start; border: 1px dashed var(--primary); color: var(--primary); background: transparent; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
 
+/* ---------- التحديثات ---------- */
+.refresh-btn { width: 34px; height: 34px; font-size: 18px; }
+.refresh-btn.spinning { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refresh-btn.spinning { animation: none; } }
+.update-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--primary-soft); color: var(--primary); font-weight: 800;
+  border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
+}
+.update-banner .btn { padding: 7px 14px; }
+.update-status { margin: 0 0 10px; font-weight: 700; }
+.update-status.new { color: var(--primary); }
+.app-link { margin-top: 16px; display: flex; flex-direction: column; gap: 5px; }
+.app-link label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.link-row { display: flex; gap: 8px; }
+.link-row input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
+.installed-msg { color: var(--confirmed); font-weight: 700; margin: 14px 0 0; }
+.install-guide { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.install-guide h3 { margin: 0 0 10px; font-size: 16px; }
+.install-guide h4 { margin: 0 0 6px; font-size: 14px; color: var(--primary); }
+.install-guide ol { margin: 0; padding-inline-start: 20px; line-height: 1.9; font-size: 14px; }
+.install-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.nav-ico { position: relative; }
+.nav-dot { position: absolute; top: -2px; left: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
+
 /* ---------- المزامنة وتسجيل الدخول ---------- */
 .title-row { display: flex; align-items: center; gap: 10px; }
 .sync-pill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }

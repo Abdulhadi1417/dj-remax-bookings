@@ -26,6 +26,10 @@ jobs:
         run: |
           mkdir _site
           cp index.html style.css app.js cloud.js config.js manifest.json icon-192.png icon-512.png _site/
+          # رقم الإصدار: تاريخ النشر + أول 7 خانات من الـ commit
+          VERSION="$(TZ=Asia/Riyadh date +%Y.%m.%d)-${GITHUB_SHA::7}"
+          sed -i "s/__APP_VERSION__/$VERSION/g; s/\.\(js\|css\)?v=[0-9]*/.\1?v=$VERSION/g" _site/index.html
+          echo "{\"version\": \"$VERSION\"}" > _site/version.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

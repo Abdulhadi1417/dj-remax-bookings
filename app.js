@@ -949,6 +949,72 @@
     if (!anyOpen && (await cloud.session())) loadFromCloud();
   });
 
+  // ---------- التحديثات ----------
+  const APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || "";
+  const isDeployed = APP_VERSION && !APP_VERSION.startsWith("__");
+  const appUrl = location.origin + location.pathname.replace(/index\.html$/, "");
+  let latestVersion = null;
+  let lastCheck = 0;
+
+  // إعادة تحميل مع تجاوز الكاش، عشان نجيب آخر نسخة من الملفات
+  function hardReload() {
+    $("refreshBtn").classList.add("spinning");
+    location.replace(`${appUrl}?r=${Date.now()}`);
+  }
+  $("refreshBtn").addEventListener("click", hardReload);
+  document.querySelectorAll("[data-apply-update]").forEach((b) => b.addEventListener("click", hardReload));
+
+  function renderUpdateState(checking = false) {
+    const hasUpdate = Boolean(latestVersion && latestVersion !== APP_VERSION);
+    const ltr = (v) => `<bdi dir="ltr">${esc(v)}</bdi>`;
+    $("versionPill").innerHTML = isDeployed ? `الإصدار ${ltr(APP_VERSION)}` : "نسخة تجريبية";
+    const st = $("updateStatus");
+    st.classList.toggle("new", hasUpdate);
+    if (!isDeployed) st.textContent = "البحث عن التحديثات يشتغل في النسخة المنشورة على الموقع.";
+    else if (checking) st.textContent = "جاري البحث عن تحديث…";
+    else if (hasUpdate) st.innerHTML = `🎉 في تحديث جديد (${ltr(latestVersion)}). اضغط "تحديث التطبيق الآن".`;
+    else if (latestVersion) st.textContent = "✓ عندك آخر إصدار.";
+    else st.textContent = "";
+    document.querySelectorAll("[data-apply-update]").forEach((b) => {
+      if (b.closest("#updatesCard")) b.classList.toggle("hidden", !hasUpdate);
+    });
+    $("updateBanner").classList.toggle("hidden", !hasUpdate);
+    $("settingsDot").classList.toggle("hidden", !hasUpdate);
+  }
+
+  async function checkForUpdate(manual = false) {
+    if (!isDeployed) {
+      renderUpdateState();
+      return;
+    }
+    lastCheck = Date.now();
+    if (manual) renderUpdateState(true);
+    try {
+      const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      latestVersion = (await res.json()).version;
+    } catch {
+      if (manual) toast("تعذّر البحث عن تحديث، تأكد من الاتصال");
+    }
+    renderUpdateState();
+  }
+
+  $("checkUpdateBtn").addEventListener("click", () => checkForUpdate(true));
+  $("appLink").value = appUrl;
+  $("copyLinkBtn").addEventListener("click", async () => {
+    toast((await copyText(appUrl)) ? "تم نسخ رابط التطبيق ✓" : "تعذّر النسخ");
+  });
+  const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  $("installedMsg").classList.toggle("hidden", !installed);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && Date.now() - lastCheck > 5 * 60 * 1000) checkForUpdate();
+  });
+
+  // نشيل ?r= من الرابط بعد التحديث
+  if (location.search.includes("r=")) history.replaceState(null, "", appUrl);
+  checkForUpdate();
+
   // ---------- البداية ----------
   let startPage = "bookings";
   try {
