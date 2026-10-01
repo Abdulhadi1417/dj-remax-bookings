@@ -1,64 +1,77 @@
-// طبقة المزامنة مع Supabase. كل سجل يُحفظ كصف: id + data (jsonb).
+// طبقة المزامنة مع Firebase (Firestore + تسجيل الدخول بالبريد).
+// المجموعات: bookings/{id} و expenses/{id} و settings/main
 window.Cloud = (() => {
-  const url = window.DJ_SUPABASE_URL || "";
-  const key = window.DJ_SUPABASE_ANON_KEY || "";
-  const enabled = Boolean(url && key && window.supabase);
+  const config = window.DJ_FIREBASE_CONFIG;
+  const enabled = Boolean(config && config.apiKey && window.firebase);
   if (!enabled) return { enabled: false };
 
-  const client = window.supabase.createClient(url, key);
-  const now = () => new Date().toISOString();
+  firebase.initializeApp(config);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  function check(result) {
-    if (result.error) throw result.error;
-    return result.data;
-  }
+  // ننتظر Firebase يتحقق من الجلسة المحفوظة قبل ما نقرر نعرض شاشة الدخول
+  const authReady = new Promise((resolve) => {
+    const stop = auth.onAuthStateChanged(() => {
+      stop();
+      resolve();
+    });
+  });
 
   async function session() {
-    const { data } = await client.auth.getSession();
-    return data.session;
+    await authReady;
+    return auth.currentUser ? { user: auth.currentUser } : null;
   }
 
   async function signIn(email, password) {
-    check(await client.auth.signInWithPassword({ email, password }));
+    await auth.signInWithEmailAndPassword(email, password);
   }
 
   async function signOut() {
-    await client.auth.signOut();
+    await auth.signOut();
   }
 
   async function fetchAll() {
     const [bookings, expenses, settings] = await Promise.all([
-      client.from("bookings").select("data"),
-      client.from("expenses").select("data"),
-      client.from("settings").select("data").eq("id", "main").maybeSingle(),
+      db.collection("bookings").get(),
+      db.collection("expenses").get(),
+      db.collection("settings").doc("main").get(),
     ]);
     return {
-      bookings: check(bookings).map((r) => r.data),
-      expenses: check(expenses).map((r) => r.data),
-      settings: check(settings) ? settings.data.data : null,
+      bookings: bookings.docs.map((d) => d.data()),
+      expenses: expenses.docs.map((d) => d.data()),
+      settings: settings.exists ? settings.data() : null,
     };
   }
 
-  async function upsert(table, rows) {
-    rows = [].concat(rows);
-    if (!rows.length) return;
-    check(await client.from(table).upsert(rows.map((r) => ({ id: r.id, data: r, updated_at: now() }))));
+  // Firestore يقبل 500 عملية كحد أقصى في الدفعة الوحدة
+  async function commitInChunks(ops) {
+    for (let i = 0; i < ops.length; i += 450) {
+      const batch = db.batch();
+      ops.slice(i, i + 450).forEach((op) => op(batch));
+      await batch.commit();
+    }
   }
 
-  async function remove(table, ids) {
+  async function upsert(collection, rows) {
+    rows = [].concat(rows);
+    await commitInChunks(rows.map((r) => (batch) => batch.set(db.collection(collection).doc(r.id), r)));
+  }
+
+  async function remove(collection, ids) {
     ids = [].concat(ids);
-    if (!ids.length) return;
-    check(await client.from(table).delete().in("id", ids));
+    await commitInChunks(ids.map((id) => (batch) => batch.delete(db.collection(collection).doc(id))));
   }
 
   async function saveSettings(settings) {
-    check(await client.from("settings").upsert({ id: "main", data: settings, updated_at: now() }));
+    await db.collection("settings").doc("main").set(settings);
   }
 
   // استبدال كل البيانات أونلاين بنسخة كاملة (للاستيراد ورفع البيانات المحلية)
   async function replaceAll({ bookings, expenses, settings }) {
-    check(await client.from("bookings").delete().neq("id", ""));
-    check(await client.from("expenses").delete().neq("id", ""));
+    for (const name of ["bookings", "expenses"]) {
+      const snap = await db.collection(name).get();
+      await commitInChunks(snap.docs.map((d) => (batch) => batch.delete(d.ref)));
+    }
     await upsert("bookings", bookings);
     await upsert("expenses", expenses);
     await saveSettings(settings);

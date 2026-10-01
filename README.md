@@ -12,14 +12,17 @@
 مرة وحدة فقط: Settings → Pages → Source → **GitHub Actions**.
 GitHub Pages يشتغل على المستودعات العامة، أو الخاصة مع اشتراك GitHub Pro.
 
-## المزامنة بين الأجهزة (Supabase)
-1. سوِّ مشروع مجاني في https://supabase.com
-2. SQL Editor → الصق محتوى `supabase.sql` → Run.
-3. Authentication → Users → Add user: بريدك وكلمة مرور (هذا حساب الدخول للتطبيق).
-4. Authentication → Sign In / Providers → أطفئ **Allow new users to sign up**.
-5. Project Settings → API: انسخ Project URL و anon public key وحطهم في `config.js`.
+## المزامنة بين الأجهزة (Firebase)
+1. افتح https://console.firebase.google.com وسوِّ مشروع جديد (Google Analytics مو ضروري).
+2. **Build → Authentication → Get started → Email/Password → Enable → Save**.
+3. **Authentication → Users → Add user**: بريدك وكلمة مرور (هذا حساب الدخول للتطبيق).
+4. **Authentication → Settings → User actions**: شيل علامة **Enable create (sign-up)** عشان محد غيرك يسوي حساب.
+5. **Build → Firestore Database → Create database** (اختر أقرب منطقة، و Production mode).
+6. **Firestore → Rules**: الصق محتوى `firestore.rules` ← **Publish**.
+7. **Project settings ⚙️ → Your apps → Web `</>`**: سجّل تطبيق، وانسخ `firebaseConfig` وحطه في `config.js`:
+   `window.DJ_FIREBASE_CONFIG = { apiKey: "...", authDomain: "...", projectId: "...", ... };`
 
-إذا كان `config.js` فاضي، التطبيق يحفظ البيانات على الجهاز فقط.
+إذا كان `config.js` فيه `null`، التطبيق يحفظ البيانات على الجهاز فقط.
 
 ## التشغيل محليًا
 ```

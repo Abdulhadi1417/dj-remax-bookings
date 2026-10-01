@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// الصق هذا في Firebase: Firestore Database → Rules → Publish
+// القراءة والكتابة للمستخدم المسجّل دخول فقط.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{collection}/{docId} {
+      allow read, write: if request.auth != null
+        && collection in ['bookings', 'expenses', 'settings'];
+    }
+  }
+}

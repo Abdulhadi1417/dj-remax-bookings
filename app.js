@@ -898,7 +898,7 @@
 
   function renderAccount(sess) {
     if (!cloud) {
-      $("accountInfo").textContent = "البيانات محفوظة على هذا الجهاز فقط. للمزامنة بين الأجهزة، اربط قاعدة البيانات في ملف config.js.";
+      $("accountInfo").textContent = "البيانات محفوظة على هذا الجهاز فقط. للمزامنة بين الأجهزة، اربط Firebase في ملف config.js.";
       return;
     }
     $("accountInfo").textContent = sess ? `مسجّل دخول بـ ${sess.user.email}. بياناتك تتزامن بين كل أجهزتك.` : "";
@@ -922,7 +922,7 @@
       renderAccount(await cloud.session());
       await loadFromCloud();
     } catch (err) {
-      $("loginError").textContent = /invalid/i.test(err.message || "")
+      $("loginError").textContent = /invalid|wrong-password|user-not-found/i.test(`${err.code} ${err.message}`)
         ? "البريد أو كلمة المرور غير صحيحة"
         : "تعذّر تسجيل الدخول، تأكد من الاتصال بالإنترنت";
       $("loginError").classList.remove("hidden");

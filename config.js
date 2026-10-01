@@ -1,5 +1,4 @@
-// بيانات ربط قاعدة البيانات (Supabase): Project URL و anon public key
-// من لوحة Supabase: Project Settings → API. هذا المفتاح عام بطبيعته، والحماية من خلال تسجيل الدخول.
-// إذا تركتها فاضية، التطبيق يحفظ البيانات على الجهاز فقط.
-window.DJ_SUPABASE_URL = "";
-window.DJ_SUPABASE_ANON_KEY = "";
+// إعدادات Firebase (firebaseConfig) من: Project settings → Your apps → Web app
+// هذي القيم عامة بطبيعتها، والحماية من خلال تسجيل الدخول وقواعد Firestore.
+// إذا تركتها null، التطبيق يحفظ البيانات على الجهاز فقط.
+window.DJ_FIREBASE_CONFIG = null;
